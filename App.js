@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { useShareIntent } from 'expo-share-intent';
 import { initDb } from './src/lib/db';
+import { initPush } from './src/lib/push';
 import HomeScreen from './src/screens/HomeScreen';
 import AddScreen from './src/screens/AddScreen';
 import DetailScreen from './src/screens/DetailScreen';
@@ -19,7 +20,7 @@ export default function App() {
   const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntent();
   const pendingShare = useRef(null);
 
-  useEffect(() => { initDb(); }, []);
+  useEffect(() => { initDb(); initPush(); }, []);
 
   useEffect(() => {
     if (!hasShareIntent) return;

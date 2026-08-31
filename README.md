@@ -1,4 +1,4 @@
-# 👁 Göz Koydum — v2
+# 👁 Göz Koydum — v3
 
 Beğendiğin ürünleri tek fotoğrafla kaydeden app. Fotoğrafını çek, gerisini AI halletsin.
 
@@ -6,13 +6,14 @@ Beğendiğin ürünleri tek fotoğrafla kaydeden app. Fotoğrafını çek, geris
 
 ```bash
 npm install
-cp .env.example .env      # içine Gemini API key'ini yaz
-npx expo start
+cp .env.example .env      # Gemini key + (opsiyonel) fiyat takip API adresi
+npx expo prebuild --platform android
+npx expo run:android      # dev build — share intent ve push bildirimleri için gerekli
 ```
 
 - Gemini API key: https://aistudio.google.com/apikey (ücretsiz katman metin analizi için yeterli; **Üzerinde dene** görsel üretimi faturalandırma açık proje ister)
-- Telefonda **Expo Go** app'iyle QR'ı okut, direkt çalışır.
-- Kamera/konum izinleri ilk kullanımda sorulur.
+- v3 itibarıyla **development build** gerekir (share intent + push, Expo Go'da çalışmaz). Share intent'siz hızlı deneme için `npx expo start` + Expo Go hâlâ iş görür.
+- Kamera/konum/bildirim izinleri ilk kullanımda sorulur.
 
 ## Özellikler
 
@@ -36,12 +37,25 @@ npx expo start
 - 🧩 Gardıroptaki parçalardan (göz koyulan + alınan) konsepte göre 2-3 kombin: Günlük / İş / Gece / Spor / Özel gün
 - Her kombinde: kullanılan parçalar, neden çalıştığı, eksik parça önerisi
 
-### Satış/bulma kanalları (kısmen — bkz. Sırada)
-- `src/lib/market.js`: sıfır için Trendyol/Hepsiburada/Amazon/n11 araması; 2. el için Dolap/letgo/sahibinden arama + ilan verme linkleri
+### Satış/bulma kanalları (v3)
+- Detayda sıfır ürünler için Trendyol/Hepsiburada/Amazon/n11'de arama, 2. el için Dolap/letgo/sahibinden'de arama
+- Alınmış ürünlerde "2. elde sat" — Dolap/letgo/sahibinden'de ilan verme linkleri
 
-## Sırada (v3)
+### Share intent (v3)
+- Alışveriş sitesinde screenshot al → Paylaş → **Göz Koydum** → Ürün ekle ekranı fotoğrafla açılır, AI doldurur
 
-- Detay ekranında kanal butonları (market.js hazır, UI bağlanacak)
-- Share intent ile screenshot'ı doğrudan app'e paylaşma
-- 2. el satış akışı ("aldım"ları Dolap/sahibinden'de sat)
-- Fiyat takibi / indirim bildirimi
+### Kombin komple giydirme (v3)
+- Kombin kartındaki "Komple giydir" ile önerilen kombinin TAMAMI beden profiline tek görselde giydirilir
+
+### Fiyat takibi (v3 — sunuculu)
+- `server/`: Express + SQLite + cron servisi (Coolify'a Dockerfile ile deploy edilir)
+- Online ürünler sunucuya senkronlanır; günlük cron Gemini Search grounding ile güncel fiyat sorar
+- ≥%5 düşüşte Expo push bildirimi; ana listede yeşil "↓ fiyat" rozeti, detayda güncel fiyat satırı
+- App tarafı `.env` → `EXPO_PUBLIC_TRACK_API`; sunucu env: `GEMINI_API_KEY`, `CRON_SECRET` (opsiyonel), `DB_PATH`
+- Sunucu yoksa app tamamen normal çalışır (senkron sessizce atlanır)
+
+## Sırada (v4)
+
+- Fiyat geçmişi grafiği
+- Kombin sonucunu kaydetme/paylaşma
+- iOS build

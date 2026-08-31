@@ -8,6 +8,7 @@ import * as Location from 'expo-location';
 import * as FileSystem from 'expo-file-system/legacy';
 import { analyzeProductImage, resolveProductUrl } from '../lib/gemini';
 import { addProduct, setUrl } from '../lib/db';
+import { syncTracked } from '../lib/sync';
 import { C, CATEGORIES } from '../lib/theme';
 
 export default function AddScreen({ navigation, route }) {
@@ -111,6 +112,7 @@ export default function AddScreen({ navigation, route }) {
       }
     }
 
+    syncTracked();
     navigation.goBack();
   }
 

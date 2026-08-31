@@ -8,8 +8,9 @@ export function priceText(p) {
   return `${p.currency}${Number(p.price).toLocaleString('tr-TR')}`;
 }
 
-export default function ProductCard({ product, onPress }) {
+export default function ProductCard({ product, priceInfo, onPress }) {
   const isStore = product.type === 'store';
+  const dropped = priceInfo?.dropped && priceInfo.lastPrice != null;
   return (
     <Pressable style={s.card} onPress={onPress}>
       {product.photoUri ? (
@@ -18,7 +19,11 @@ export default function ProductCard({ product, onPress }) {
         <View style={[s.photo, s.noPhoto]}><Text style={{ fontSize: 40 }}>🛍️</Text></View>
       )}
 
-      {product.aiFilled ? (
+      {dropped ? (
+        <View style={[s.badge, s.dropBadge]}>
+          <Text style={[s.badgeTxt, { color: '#fff' }]}>↓ ₺{Number(priceInfo.lastPrice).toLocaleString('tr-TR')}</Text>
+        </View>
+      ) : product.aiFilled ? (
         <View style={s.badge}><Text style={s.badgeTxt}>✨ AI doldurdu</Text></View>
       ) : null}
 
@@ -59,6 +64,7 @@ const s = StyleSheet.create({
     borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3,
   },
   badgeTxt: { fontSize: 10, fontWeight: '600', color: C.ink },
+  dropBadge: { backgroundColor: C.ok },
   src: { position: 'absolute', top: 10, right: 10, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
   srcTxt: { fontSize: 10, fontWeight: '700', color: '#fff' },
   overlay: {

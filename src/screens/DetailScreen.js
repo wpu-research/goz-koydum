@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getProduct, setBought, deleteProduct, updateProduct } from '../lib/db';
 import { priceText } from '../components/ProductCard';
 import { NEW_CHANNELS, USED_CHANNELS } from '../lib/market';
+import { syncTracked, fetchPrices } from '../lib/sync';
 import { C } from '../lib/theme';
 
 export default function DetailScreen({ route, navigation }) {
@@ -15,7 +16,14 @@ export default function DetailScreen({ route, navigation }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(null);
 
-  useFocusEffect(useCallback(() => { setP(getProduct(id)); }, [id]));
+  const [priceInfo, setPriceInfo] = useState(null);
+
+  useFocusEffect(useCallback(() => {
+    setP(getProduct(id));
+    let alive = true;
+    fetchPrices().then((map) => { if (alive) setPriceInfo(map[id] || null); });
+    return () => { alive = false; };
+  }, [id]));
   if (!p) return null;
 
   const isStore = p.type === 'store';
@@ -48,12 +56,13 @@ export default function DetailScreen({ route, navigation }) {
   function toggleBought() {
     setBought(id, p.bought ? 0 : 1);
     setP(getProduct(id));
+    syncTracked();
   }
 
   function remove() {
     Alert.alert('Silinsin mi?', p.name, [
       { text: 'Vazgeç' },
-      { text: 'Sil', style: 'destructive', onPress: () => { deleteProduct(id); navigation.goBack(); } },
+      { text: 'Sil', style: 'destructive', onPress: () => { deleteProduct(id); syncTracked(); navigation.goBack(); } },
     ]);
   }
 
@@ -66,6 +75,7 @@ export default function DetailScreen({ route, navigation }) {
     updateProduct(id, { ...form, price: form.price ? parseFloat(String(form.price).replace(',', '.')) : null });
     setEditing(false);
     setP(getProduct(id));
+    syncTracked();
   }
 
   return (
@@ -115,6 +125,12 @@ export default function DetailScreen({ route, navigation }) {
       ) : (
         <View style={s.fields}>
           <Row k="Kaynak" v={isStore ? (p.locationName || '—') : (p.url || '—')} />
+          {priceInfo?.lastPrice != null ? (
+            <Row
+              k="Güncel fiyat"
+              v={`₺${Number(priceInfo.lastPrice).toLocaleString('tr-TR')}${priceInfo.dropped ? ' ↓ düştü!' : ''}`}
+            />
+          ) : null}
           <Row k="Eklendi" v={new Date(p.createdAt + 'Z').toLocaleDateString('tr-TR')} />
           {p.note ? <Row k="Not" v={p.note} /> : null}
         </View>

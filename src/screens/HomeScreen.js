@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { getProducts } from '../lib/db';
+import { fetchPrices } from '../lib/sync';
 import ProductCard from '../components/ProductCard';
 import { C } from '../lib/theme';
 
@@ -15,9 +16,13 @@ const FILTERS = [
 export default function HomeScreen({ navigation }) {
   const [filter, setFilter] = useState('all');
   const [items, setItems] = useState([]);
+  const [prices, setPrices] = useState({});
 
   useFocusEffect(useCallback(() => {
     setItems(getProducts(filter));
+    let alive = true;
+    fetchPrices().then((p) => { if (alive) setPrices(p); });
+    return () => { alive = false; };
   }, [filter]));
 
   const total = items.reduce((s, r) => s + (r.price || 0), 0);
@@ -55,7 +60,11 @@ export default function HomeScreen({ navigation }) {
         data={items}
         keyExtractor={(i) => String(i.id)}
         renderItem={({ item }) => (
-          <ProductCard product={item} onPress={() => navigation.navigate('Detail', { id: item.id })} />
+          <ProductCard
+            product={item}
+            priceInfo={prices[item.id]}
+            onPress={() => navigation.navigate('Detail', { id: item.id })}
+          />
         )}
         contentContainerStyle={{ paddingTop: 6, paddingBottom: 110 }}
         ListEmptyComponent={
