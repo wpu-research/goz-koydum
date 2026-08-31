@@ -3,9 +3,12 @@ import {
   View, Text, Image, Pressable, ScrollView, ActivityIndicator, Alert, StyleSheet,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { getWardrobe } from '../lib/db';
-import { suggestOutfits } from '../lib/gemini';
+import * as FileSystem from 'expo-file-system/legacy';
+import { getWardrobe, getProfile } from '../lib/db';
+import { suggestOutfits, generateOutfitTryOn } from '../lib/gemini';
 import { C } from '../lib/theme';
+
+const WEARABLE = ['Giyim', 'Ayakkabı', 'Aksesuar'];
 
 const CONCEPTS = ['Günlük', 'İş', 'Gece', 'Spor', 'Özel gün'];
 
@@ -14,10 +17,53 @@ export default function CombineScreen({ navigation }) {
   const [concept, setConcept] = useState('Günlük');
   const [busy, setBusy] = useState(false);
   const [outfits, setOutfits] = useState(null);
+  const [tryonBusy, setTryonBusy] = useState(null);   // giydirilen kombin index'i
+  const [tryons, setTryons] = useState({});            // index -> sonuç uri
 
   useFocusEffect(useCallback(() => { setWardrobe(getWardrobe()); }, []));
 
   const byId = Object.fromEntries(wardrobe.map((p) => [p.id, p]));
+
+  async function tryOnOutfit(o, idx) {
+    const profile = getProfile();
+    const refUris = profile ? [
+      { label: 'front', uri: profile.frontUri },
+      { label: 'back', uri: profile.backUri },
+      { label: 'side', uri: profile.sideUri },
+    ].filter((r) => r.uri) : [];
+    if (!refUris.length) {
+      Alert.alert('Beden profili yok', 'Komple giydirmek için önce beden profilini oluştur.', [
+        { text: 'Vazgeç', style: 'cancel' },
+        { text: 'Profili oluştur', onPress: () => navigation.navigate('Profile') },
+      ]);
+      return;
+    }
+    const pieces = o.itemIds
+      .map((id) => byId[id])
+      .filter((p) => p && p.photoUri && WEARABLE.includes(p.category));
+    if (!pieces.length) {
+      Alert.alert('Giydirilemedi', 'Bu kombinde fotoğraflı giyilebilir parça yok.');
+      return;
+    }
+    setTryonBusy(idx);
+    try {
+      const b64 = (uri) => FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+      const refs = await Promise.all(refUris.map(async (r) => ({ label: r.label, base64: await b64(r.uri) })));
+      const garments = await Promise.all(pieces.map(async (p) => ({
+        name: p.name, category: p.category, base64: await b64(p.photoUri),
+      })));
+      const outB64 = await generateOutfitTryOn({
+        refs, garments, height: profile.height, weight: profile.weight,
+      });
+      const out = FileSystem.documentDirectory + `outfit_${Date.now()}.jpg`;
+      await FileSystem.writeAsStringAsync(out, outB64, { encoding: FileSystem.EncodingType.Base64 });
+      setTryons((t) => ({ ...t, [idx]: out }));
+    } catch (e) {
+      Alert.alert('Giydiremedim', e.message);
+    } finally {
+      setTryonBusy(null);
+    }
+  }
 
   async function run() {
     setBusy(true);
@@ -76,6 +122,22 @@ export default function CombineScreen({ navigation }) {
               <Text style={s.missingTxt}>🔎 Eksik: {o.missing}</Text>
             </View>
           ) : null}
+
+          <Pressable
+            style={[s.tryonBtn, tryonBusy === i && { opacity: 0.6 }]}
+            disabled={tryonBusy !== null}
+            onPress={() => tryOnOutfit(o, i)}
+          >
+            {tryonBusy === i
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={s.tryonBtnTxt}>👗 Komple giydir ✨</Text>}
+          </Pressable>
+          {tryons[i] ? (
+            <>
+              <Image source={{ uri: tryons[i] }} style={s.tryonImg} />
+              <Text style={s.disc}>AI üretimi — gerçek görünüm/oturuştan farklı olabilir.</Text>
+            </>
+          ) : null}
         </View>
       ))}
 
@@ -112,6 +174,13 @@ const s = StyleSheet.create({
   itemName: { fontSize: 11, color: C.ink, marginTop: 4 },
   missing: { backgroundColor: 'rgba(255,211,56,0.18)', borderRadius: 10, padding: 10, marginTop: 12 },
   missingTxt: { fontSize: 12, color: '#7A5B00', fontWeight: '600' },
+  tryonBtn: {
+    backgroundColor: C.dark, borderRadius: 12, paddingVertical: 11, alignItems: 'center',
+    marginTop: 12, minHeight: 42, justifyContent: 'center',
+  },
+  tryonBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  tryonImg: { width: '100%', height: 400, borderRadius: 14, marginTop: 12, backgroundColor: C.bg },
+  disc: { fontSize: 11, color: C.muted, marginTop: 6, textAlign: 'center' },
   hintBox: { backgroundColor: C.card, borderRadius: 14, padding: 14, marginTop: 20, borderWidth: 1.5, borderColor: C.line, borderStyle: 'dashed' },
   hintTxt: { fontSize: 13, color: C.muted, lineHeight: 19 },
 });

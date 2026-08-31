@@ -117,17 +117,7 @@ Rules:
 - Output ONLY the final image, no text.`;
 }
 
-// Beden profili (refs: [{label, base64}]) + ürün fotosu ile giydirir. Dönen: base64.
-export async function generateTryOn({ refs, garmentBase64, category, size, height, weight }) {
-  if (!KEY || KEY === 'BURAYA_KEYINI_YAPISTIR') {
-    throw new Error('Gemini API anahtarı eksik. .env dosyasına EXPO_PUBLIC_GEMINI_API_KEY ekle.');
-  }
-  if (!refs || !refs.length) throw new Error('Beden profili fotoğrafı yok.');
-
-  const reqParts = [{ text: tryonPrompt({ category, size, height, weight, refs }) }];
-  for (const r of refs) reqParts.push({ inline_data: { mime_type: 'image/jpeg', data: r.base64 } });
-  reqParts.push({ inline_data: { mime_type: 'image/jpeg', data: garmentBase64 } });
-
+async function callImage(reqParts) {
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${TRYON_MODEL}:generateContent?key=${KEY}`,
     {
@@ -155,6 +145,52 @@ export async function generateTryOn({ refs, garmentBase64, category, size, heigh
     throw new Error('Model görsel döndürmedi.' + (txt ? ` (${txt})` : ''));
   }
   return b64;
+}
+
+// Beden profili (refs: [{label, base64}]) + ürün fotosu ile giydirir. Dönen: base64.
+export async function generateTryOn({ refs, garmentBase64, category, size, height, weight }) {
+  if (!KEY || KEY === 'BURAYA_KEYINI_YAPISTIR') {
+    throw new Error('Gemini API anahtarı eksik. .env dosyasına EXPO_PUBLIC_GEMINI_API_KEY ekle.');
+  }
+  if (!refs || !refs.length) throw new Error('Beden profili fotoğrafı yok.');
+
+  const reqParts = [{ text: tryonPrompt({ category, size, height, weight, refs }) }];
+  for (const r of refs) reqParts.push({ inline_data: { mime_type: 'image/jpeg', data: r.base64 } });
+  reqParts.push({ inline_data: { mime_type: 'image/jpeg', data: garmentBase64 } });
+  return callImage(reqParts);
+}
+
+// Komple kombin giydirme: refs + birden çok parça görseli. Dönen: base64.
+export async function generateOutfitTryOn({ refs, garments, height, weight }) {
+  if (!KEY || KEY === 'BURAYA_KEYINI_YAPISTIR') {
+    throw new Error('Gemini API anahtarı eksik. .env dosyasına EXPO_PUBLIC_GEMINI_API_KEY ekle.');
+  }
+  if (!refs || !refs.length) throw new Error('Beden profili fotoğrafı yok.');
+  if (!garments || !garments.length) throw new Error('Kombinde fotoğraflı parça yok.');
+
+  const refLines = refs.map((r, i) => `- Reference photo ${i + 1}: ${r.label} view of the person.`).join('\n');
+  const itemLines = garments.map((g, i) => `- Product photo ${i + 1}: ${g.name || g.category || 'item'} (${g.category || 'clothing'})`).join('\n');
+  const body = [height ? `${height} cm tall` : null, weight ? `${weight} kg` : null].filter(Boolean).join(', ');
+
+  const prompt = `You are a photorealistic virtual try-on engine.
+The first ${refs.length} image(s) all show the SAME real person from different angles:
+${refLines}
+The remaining ${garments.length} image(s) are products forming ONE complete outfit:
+${itemLines}
+
+Body info: ${body || 'not specified'}.
+
+Generate ONE photorealistic front-facing image of this exact person wearing ALL of these products TOGETHER as a complete outfit.
+Rules:
+- Keep the person's identity EXACTLY: same face, skin tone, hair, and body proportions. Never invent a different person.
+- Every product must appear, matching its reference color, pattern and details, with realistic fit, folds, shadows and lighting.
+- Single natural front view on a clean neutral studio background.
+- Output ONLY the final image, no text.`;
+
+  const reqParts = [{ text: prompt }];
+  for (const r of refs) reqParts.push({ inline_data: { mime_type: 'image/jpeg', data: r.base64 } });
+  for (const g of garments) reqParts.push({ inline_data: { mime_type: 'image/jpeg', data: g.base64 } });
+  return callImage(reqParts);
 }
 
 export async function analyzeProductImage(base64) {
