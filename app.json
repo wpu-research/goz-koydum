@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Göz Koydum",
+    "slug": "goz-koydum",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#241F38"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Beğendiğin ürünlerin fotoğrafını çekmek için kamera gerekli.",
+        "NSPhotoLibraryUsageDescription": "Screenshot ve ürün fotoğraflarını seçmek için galeri erişimi gerekli.",
+        "NSLocationWhenInUseUsageDescription": "Mağazadaki ürünün konumunu otomatik kaydetmek için konum gerekli."
+      }
+    },
+    "android": {
+      "package": "com.gozkoydum.app",
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "READ_MEDIA_IMAGES"
+      ]
+    },
+    "plugins": [
+      "expo-sqlite",
+      "expo-location",
+      "expo-image-picker",
+      "expo-asset"
+    ]
+  }
+}
