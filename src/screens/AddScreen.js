@@ -10,7 +10,7 @@ import { analyzeProductImage, resolveProductUrl } from '../lib/gemini';
 import { addProduct, setUrl } from '../lib/db';
 import { C, CATEGORIES } from '../lib/theme';
 
-export default function AddScreen({ navigation }) {
+export default function AddScreen({ navigation, route }) {
   const [photo, setPhoto] = useState(null);      // { uri, base64 }
   const [busy, setBusy] = useState(false);
   const [aiFilled, setAiFilled] = useState(false);
@@ -19,6 +19,22 @@ export default function AddScreen({ navigation }) {
     type: 'store', condition: '0', url: '', locationName: '', lat: null, lng: null, note: '',
   });
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Share intent ile gelen görsel: otomatik yükle + AI'yı tetikle
+  React.useEffect(() => {
+    const uri = route?.params?.sharedUri;
+    if (!uri) return;
+    (async () => {
+      try {
+        const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+        const asset = { uri, base64 };
+        setPhoto(asset);
+        runAI(asset, false);
+      } catch (e) {
+        Alert.alert('Görsel okunamadı', e.message);
+      }
+    })();
+  }, [route?.params?.sharedUri]);
 
   async function pick(fromCamera) {
     const opts = { quality: 0.7, base64: true };

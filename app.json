@@ -3,6 +3,7 @@
     "name": "Göz Koydum",
     "slug": "goz-koydum",
     "version": "1.0.0",
+    "scheme": "gozkoydum",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.png",
@@ -35,7 +36,16 @@
       "expo-sqlite",
       "expo-location",
       "expo-image-picker",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-share-intent",
+        {
+          "androidIntentFilters": ["image/*"],
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsImageWithMaxCount": 1
+          }
+        }
+      ]
     ]
   }
 }

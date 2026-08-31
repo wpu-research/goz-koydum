@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect, useRef } from 'react';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
+import { useShareIntent } from 'expo-share-intent';
 import { initDb } from './src/lib/db';
 import HomeScreen from './src/screens/HomeScreen';
 import AddScreen from './src/screens/AddScreen';
@@ -12,11 +13,35 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import { C } from './src/lib/theme';
 
 const Stack = createNativeStackNavigator();
+const navRef = createNavigationContainerRef();
 
 export default function App() {
+  const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntent();
+  const pendingShare = useRef(null);
+
   useEffect(() => { initDb(); }, []);
+
+  useEffect(() => {
+    if (!hasShareIntent) return;
+    const file = shareIntent?.files?.[0];
+    const uri = file?.path || file?.contentUri || null;
+    if (uri) {
+      if (navRef.isReady()) navRef.navigate('Add', { sharedUri: uri });
+      else pendingShare.current = uri;   // navigation henüz hazır değilse onReady'de gönder
+    }
+    resetShareIntent();
+  }, [hasShareIntent]);
+
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      ref={navRef}
+      onReady={() => {
+        if (pendingShare.current) {
+          navRef.navigate('Add', { sharedUri: pendingShare.current });
+          pendingShare.current = null;
+        }
+      }}
+    >
       <StatusBar style="dark" />
       <Stack.Navigator
         screenOptions={{
