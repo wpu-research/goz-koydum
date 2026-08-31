@@ -5,7 +5,10 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#241F38"
     },
     "ios": {
@@ -18,6 +21,10 @@
     },
     "android": {
       "package": "com.gozkoydum.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#241F38"
+      },
       "permissions": [
         "CAMERA",
         "ACCESS_FINE_LOCATION",

@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const db = SQLite.openDatabaseSync('gozkoydum.db');
 
@@ -50,15 +51,14 @@ export function initDb() {
   }
 }
 
-// Kullanıcının kendi (üzerine giydirmek için) fotoğrafı — kalıcı ayar
-export function getMyPhoto() {
-  return db.getFirstSync("SELECT v FROM settings WHERE k='myPhoto'")?.v || null;
+export function getSetting(k) {
+  return db.getFirstSync('SELECT v FROM settings WHERE k=?', [k])?.v || null;
 }
 
-export function setMyPhoto(uri) {
+export function setSetting(k, v) {
   db.runSync(
-    "INSERT INTO settings (k, v) VALUES ('myPhoto', ?) ON CONFLICT(k) DO UPDATE SET v=excluded.v",
-    [uri]
+    'INSERT INTO settings (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v=excluded.v',
+    [k, v]
   );
 }
 
@@ -132,7 +132,12 @@ export function setBought(id, v) {
 }
 
 export function deleteProduct(id) {
+  const p = getProduct(id);
   db.runSync('DELETE FROM products WHERE id=?', [id]);
+  // Diskteki fotoğrafları da temizle — best-effort
+  for (const uri of [p?.photoUri, p?.tryonUri]) {
+    if (uri) FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => {});
+  }
 }
 
 export function totalPrice(filter = 'all') {
