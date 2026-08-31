@@ -120,6 +120,30 @@ export default function DetailScreen({ route, navigation }) {
         </View>
       )}
 
+      <View style={{ paddingHorizontal: 16, marginTop: 14 }}>
+        <Text style={s.chLbl}>{isUsed ? '2. elde ara' : 'Sıfır fiyatlarına bak'}</Text>
+        <View style={s.chRow}>
+          {(isUsed ? USED_CHANNELS : NEW_CHANNELS).map((c) => (
+            <Pressable key={c.key} style={s.chChip} onPress={() => open(c.search(p.name))}>
+              <Text style={s.chChipTxt}>{c.label} ↗</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {p.bought ? (
+          <>
+            <Text style={[s.chLbl, { marginTop: 14 }]}>2. elde sat</Text>
+            <View style={s.chRow}>
+              {USED_CHANNELS.map((c) => (
+                <Pressable key={c.key} style={[s.chChip, s.chSell]} onPress={() => open(c.sell)}>
+                  <Text style={[s.chChipTxt, { color: '#7A5B00' }]}>{c.label}'ta ilan ver ↗</Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        ) : null}
+      </View>
+
       <Pressable style={[s.bought, p.bought && s.boughtOn]} onPress={toggleBought}>
         <Text style={[s.boughtTxt, p.bought && { color: '#fff' }]}>
           {p.bought ? '✓ Alındı — geri al' : '✓ Aldım olarak işaretle'}
@@ -194,6 +218,14 @@ const s = StyleSheet.create({
     borderRadius: 13, paddingVertical: 13, alignItems: 'center',
   },
   tryonTxt: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  chLbl: { fontSize: 11, color: C.muted, marginBottom: 8 },
+  chRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chChip: {
+    borderWidth: 1.5, borderColor: C.line, borderRadius: 999,
+    paddingHorizontal: 13, paddingVertical: 7, backgroundColor: C.card,
+  },
+  chChipTxt: { fontSize: 12, color: C.ink, fontWeight: '600' },
+  chSell: { backgroundColor: 'rgba(255,211,56,0.18)', borderColor: 'rgba(255,211,56,0.6)' },
   del: { alignItems: 'center', paddingVertical: 10 },
   delTxt: { color: '#C4402F', fontSize: 13, fontWeight: '600' },
 });
