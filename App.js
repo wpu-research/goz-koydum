@@ -2,7 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { useShareIntent } from 'expo-share-intent';
+import Constants from 'expo-constants';
+
+// Expo Go'da expo-share-intent native modülü yok — orada no-op'a düş.
+const isExpoGo = Constants.appOwnership === 'expo';
+const useShareIntent = isExpoGo
+  ? () => ({ hasShareIntent: false, shareIntent: null, resetShareIntent: () => {} })
+  : require('expo-share-intent').useShareIntent;
 import { initDb } from './src/lib/db';
 import { initPush } from './src/lib/push';
 import HomeScreen from './src/screens/HomeScreen';
